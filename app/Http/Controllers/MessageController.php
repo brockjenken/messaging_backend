@@ -6,6 +6,7 @@ use App\Resources\Data\{MessageMapper, UserMapper};
 use App\Resources\Models\Message;
 use App\Resources\Schema\Parser;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Http\Request;
 use Symfony\Component\HttpKernel\Exception\{BadRequestHttpException, ConflictHttpException, HttpException, NotFoundHttpException};
 
@@ -32,6 +33,28 @@ class MessageController extends AppController
         }
 
         $messages = $this->mapper->findByRecipientID($user_id);
+
+        Log::info("Returned messages for User $user_id");
+        return $this->response(200, Parser::parseMessages($messages));
+    }
+
+    /**
+     * Undocumented function
+     *
+     * @param Request $request
+     * @param string $user_id1
+     * @param string $user_id2
+     * @return Response
+     */
+    public function getMessagesBetweenUsers(Request $request, string $user_id1, string $user_id2) : Response
+    {
+        if (!$this->_usersExist(["senderID"=> $user_id1, "recipientID"=> $user_id2])){
+            throw new NotFoundHttpExcetion("Please ensure both the sender and recipient IDs exist");
+        }
+
+        $messages = $this->mapper->findConversationByUsers($user_id1, $user_id2);
+
+        Log::info("Returned messages between Users $user_id1 and $user_id2");
         return $this->response(200, Parser::parseMessages($messages));
     }
 
@@ -60,6 +83,7 @@ class MessageController extends AppController
         $message = $this->_createMessage($data);
         $this->mapper->save($message);
 
+        Log::info("Created message for User $user_id");
         return $this->response(201, Parser::parseMessage($message));
     }
 
@@ -87,6 +111,8 @@ class MessageController extends AppController
         }
 
         $this->mapper->delete($message); 
+
+        Log::info("Deleted message $message_id for User $user_id");
         return $this->response(204, null);
     }
 

@@ -10,14 +10,8 @@ use Symfony\Component\HttpKernel\Exception\{BadRequestHttpException, ConflictHtt
 
 class AppController extends BaseController
 {    
-    /**
-     * @var string
-     */
-    protected const ADDITIONAL_PROPERTY_CAUSE = "additionalProperties";
 
-    /**
-     * @var string
-     */
+    protected const ADDITIONAL_PROPERTY_CAUSE = "additionalProperties";
     protected const REQUIRED_CAUSE = "required";
 
     /**

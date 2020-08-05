@@ -58,12 +58,12 @@ class MessageMapper extends BaseMapper {
      */
     public function find(string $id) : ?Message
     {
-        $resp = DB::table($this->TABLE)->where(self::ID, $id)->first();
+        $resp = DB::table($this->TABLE)->where(self::ID, $id)->orderBy(self::DATE, self::ASC)->first();
         return $this->load($resp);
     }
 
     /**
-     * Saves a Message to the database and returns True on success
+     * Saves a Message to the database and returns True on success 
      *
      * @param Message $message
      * @return boolean
@@ -83,7 +83,7 @@ class MessageMapper extends BaseMapper {
      */
     public function findBySenderID(string $id) : ?array
     {
-        $resp = DB::table($this->TABLE)->where(self::SENDER_ID, $id)->get();
+        $resp = DB::table($this->TABLE)->where(self::SENDER_ID, $id)->orderBy(self::DATE, self::ASC)->get();
         return $this->loadMany($resp);
     }
     
@@ -95,7 +95,27 @@ class MessageMapper extends BaseMapper {
      */
     public function findByRecipientID(string $id) : ?array
     {
-        $resp = DB::table($this->TABLE)->where(self::SENDER_ID, $id)->get();
+        $resp = DB::table($this->TABLE)->where(self::SENDER_ID, $id)->orderBy(self::DATE, self::ASC)->get();
+        return $this->loadMany($resp);
+    }
+
+    /**
+     * Used to get messages that both users have either sent or received.
+     *
+     * Messages are returned in sending order, as such is common in many messaging apps
+     * 
+     * @param string $user1
+     * @param string $user2
+     * @return array
+     */
+    public function findConversationByUsers(string $user_id1, string $user_id2) : array
+    {
+        $resp = DB::table($this->TABLE)
+                ->where([[self::SENDER_ID, $user_id1], [self::RECIPIENT_ID, $user_id2]])
+                ->orWhere([[self::SENDER_ID, $user_id2], [self::RECIPIENT_ID, $user_id1]])
+                ->orderBy(self::DATE, self::DESC)
+                ->get();
+
         return $this->loadMany($resp);
     }
 
@@ -106,7 +126,7 @@ class MessageMapper extends BaseMapper {
      * @param integer $end
      * @return array|null
      */
-    public function find_by_date(int $start, int $end) : ?array
+    public function findByDate(int $start, int $end) : ?array
     {
         $resp = DB::table($this->TABLE)->where(
             [self::DATE, ">=", $start],

@@ -14,6 +14,12 @@ use PDOStatement;
 
 class BaseMapper {
 
+    /**
+     * Constants for queries
+     */
+    protected const ASC = "asc";
+    protected const DESC = "desc";
+
     public function __construct()
     {
         $this->setUpTable();

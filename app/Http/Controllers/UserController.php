@@ -6,6 +6,7 @@ use App\Resources\Data\UserMapper;
 use App\Resources\Models\User;
 use App\Resources\Schema\Parser;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Http\Request;
 use Symfony\Component\HttpKernel\Exception\{ConflictHttpException, NotFoundHttpException};
 
@@ -25,6 +26,8 @@ class UserController extends AppController
     public function getUsers(Request $request) : Response
     {
         $users = $this->mapper->findAll();
+        
+        Log::info("Returned Users");
         return $this->response(200, Parser::parseUsers($users));
     }
 
@@ -47,6 +50,7 @@ class UserController extends AppController
         $user = $this->_createUser($data);
         $this->mapper->save($user);
 
+        Log::info("Created User {$user->getIDString()}");
         return $this->response(201, Parser::parseUser($user));
     }
 
@@ -77,6 +81,7 @@ class UserController extends AppController
         $user->updateInformation($data);
         $this->mapper->update($user);
 
+        Log::info("Updated User $user_id");
         return $this->response(200, Parser::parseUser($user));
     }
 
@@ -97,6 +102,8 @@ class UserController extends AppController
         }
 
         $this->mapper->delete($user); 
+
+        Log::info("Deleted User $user_id");
         return $this->response(204, null);
     }
 
