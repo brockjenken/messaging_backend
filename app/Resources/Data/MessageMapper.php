@@ -10,6 +10,16 @@ use Illuminate\Support\Facades\Schema;
 class MessageMapper extends BaseMapper {
 
     /**
+     * Constant values for MessageMapper field names
+     */
+    private const ID = "id";
+    private const TEXT = "text";
+    private const DATE = "date";
+    private const SENDER_ID = "senderID";
+    private const RECIPIENT_ID = "recipientID";
+
+
+    /**
      * Holds the name of the database table
      * 
      * @val string
@@ -31,11 +41,11 @@ class MessageMapper extends BaseMapper {
     {
         if (!Schema::hasTable($this->TABLE)){
             Schema::create($this->TABLE, function (Blueprint $table) {
-                $table->string("id")->primary();
-                $table->string("text");
-                $table->integer("date");
-                $table->string("senderID");
-                $table->string("recipientID");
+                $table->string(self::ID)->primary();
+                $table->string(self::TEXT);
+                $table->integer(self::DATE);
+                $table->string(self::SENDER_ID);
+                $table->string(self::RECIPIENT_ID);
             });
         }
     }
@@ -48,7 +58,7 @@ class MessageMapper extends BaseMapper {
      */
     public function find(string $id) : ?Message
     {
-        $resp = DB::table($this->TABLE)->where("id", $id)->first();
+        $resp = DB::table($this->TABLE)->where(self::ID, $id)->first();
         return $this->load($resp);
     }
 
@@ -73,7 +83,7 @@ class MessageMapper extends BaseMapper {
      */
     public function findBySenderID(string $id) : ?array
     {
-        $resp = DB::table($this->TABLE)->where("senderID", $id)->get();
+        $resp = DB::table($this->TABLE)->where(self::SENDER_ID, $id)->get();
         return $this->loadMany($resp);
     }
     
@@ -85,7 +95,7 @@ class MessageMapper extends BaseMapper {
      */
     public function findByRecipientID(string $id) : ?array
     {
-        $resp = DB::table($this->TABLE)->where("recipientID", $id)->get();
+        $resp = DB::table($this->TABLE)->where(self::SENDER_ID, $id)->get();
         return $this->loadMany($resp);
     }
 
@@ -99,8 +109,8 @@ class MessageMapper extends BaseMapper {
     public function find_by_date(int $start, int $end) : ?array
     {
         $resp = DB::table($this->TABLE)->where(
-            ["date", ">=", $start],
-            ["date", "<=", $end]
+            [self::DATE, ">=", $start],
+            [self::DATE, "<=", $end]
             )->get();
         return $this->loadMany($resp);
     }
@@ -114,7 +124,7 @@ class MessageMapper extends BaseMapper {
      */
     public function delete(Message $message) : bool
     {
-        $resp = DB::table($this->TABLE)->where("id", $message->getIDString())->delete();
+        $resp = DB::table($this->TABLE)->where(self::ID, $message->getIDString())->delete();
         return (bool) $resp;
     }
 
@@ -148,11 +158,11 @@ class MessageMapper extends BaseMapper {
     private function dump(Message $message) : array
     {
         return [
-            "id"=> $message->getIDString(),
-            "text"=> $message->getTextString(),
-            "date"=> $message->getDateInt(),
-            "senderID"=> $message->getSenderIDString(),
-            "recipientID"=> $message->getRecipientIDString()
+            self::ID=> $message->getIDString(),
+            self::TEXT=> $message->getTextString(),
+            self::DATE=> $message->getDateInt(),
+            self::SENDER_ID=> $message->getSenderIDString(),
+            self::RECIPIENT_ID=> $message->getRecipientIDString()
         ];
     }
 

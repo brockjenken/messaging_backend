@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\Schema;
 class UserMapper extends BaseMapper {
 
     /**
+     * Constant values for UserMapper field names
+     */
+    private const ID = "id";
+    private const USERNAME = "username";
+    private const PASSWORD = "password";
+
+    /**
      * Holds the name of the database table
      * 
      * @val string
@@ -32,9 +39,9 @@ class UserMapper extends BaseMapper {
     {
         if (!Schema::hasTable($this->TABLE)){
             Schema::create($this->TABLE, function (Blueprint $table) {
-                $table->string("id")->primary();
-                $table->string("username")->unique();
-                $table->string("password");
+                $table->string(self::ID)->primary();
+                $table->string(self::USERNAME)->unique();
+                $table->string(self::PASSWORD);
             });
         }
     }
@@ -47,7 +54,7 @@ class UserMapper extends BaseMapper {
      */
     public function find(string $id) : ?User
     {
-        $resp = DB::table($this->TABLE)->where("id", $id)->first();
+        $resp = DB::table($this->TABLE)->where(self::ID, $id)->first();
         return $this->load($resp);
     }
 
@@ -72,7 +79,7 @@ class UserMapper extends BaseMapper {
      */
     public function update(User $user) : bool
     {
-        return DB::table($this->TABLE)->where("id", $user->getIDString())->update(
+        return DB::table($this->TABLE)->where(self::ID, $user->getIDString())->update(
             $this->dump($user)
         );
     }
@@ -86,7 +93,7 @@ class UserMapper extends BaseMapper {
      */
     public function findByUsername(string $username) : ?User
     {
-        $resp = DB::table($this->TABLE)->where("username", $username)->first();
+        $resp = DB::table($this->TABLE)->where(self::USERNAME, $username)->first();
         return $this->load($resp);
     }
 
@@ -98,7 +105,7 @@ class UserMapper extends BaseMapper {
      */
     public function delete(User $user) : bool
     {
-        $resp = DB::table($this->TABLE)->where("id", $user->getIDString())->delete();
+        $resp = DB::table($this->TABLE)->where(self::ID, $user->getIDString())->delete();
         return (bool) $resp;
     }
 
@@ -112,7 +119,7 @@ class UserMapper extends BaseMapper {
      */
     public function usernameExists(string $username) : bool
     {
-        return DB::table($this->TABLE)->where("username", $username)->exists();
+        return DB::table($this->TABLE)->where(self::USERNAME, $username)->exists();
     }
 
     /**
@@ -139,9 +146,9 @@ class UserMapper extends BaseMapper {
     private function dump(User $user) : array
     {
         return [
-            "id"=> $user->getIDString(), 
-            "username"=> $user->getUsernameString(), 
-            "password"=> $user->getPasswordString()
+            self::ID=> $user->getIDString(), 
+            self::USERNAME=> $user->getUsernameString(), 
+            self::PASSWORD=> $user->getPasswordString()
         ];
     }
 
