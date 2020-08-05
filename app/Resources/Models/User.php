@@ -98,7 +98,7 @@ class User
 
         foreach (get_object_vars($this) as $k => $v){
             if (isset($data[$k])){
-                $this->$k = $v;
+                $this->$k = $data[$k];
             }
         }
     }

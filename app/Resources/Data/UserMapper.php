@@ -3,6 +3,9 @@
 namespace App\Resources\Data;
 
 use App\Resources\Models\User;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class UserMapper extends BaseMapper {
 
@@ -19,17 +22,33 @@ class UserMapper extends BaseMapper {
         $this->setUpTable();
     }
 
-    /**
-     * Creates table for Users and returns True on success
+    
+     /**
+     *  Sets up table if not already present
      *
-     * @return boolean
+     * @return void
      */
-    private function setUpTable() : bool
+    protected function setUpTable()
     {
-        $fields = ["id TEXT PRIMARY KEY", "username TEXT UNIQUE", "password TEXT"];
-        $q = parent::getCreateTableQuery($this->TABLE, $fields);
-        $resp = $this->db->statement($q);
-        return $resp;
+        if (!Schema::hasTable($this->TABLE)){
+            Schema::create($this->TABLE, function (Blueprint $table) {
+                $table->string("id")->primary();
+                $table->string("username")->unique();
+                $table->string("password");
+            });
+        }
+    }
+
+    /**
+     * Finds a User in database via it's ID. Returns null if not found
+     * 
+     * @param string $id
+     * @return User|null
+     */
+    public function find(string $id) : ?User
+    {
+        $resp = DB::table($this->TABLE)->where("id", $id)->first();
+        return $this->load($resp);
     }
 
     /**
@@ -40,27 +59,24 @@ class UserMapper extends BaseMapper {
      */
     public function save(User $user) : bool
     {
-        $fields = ["id", "username", "password"];
-        $values = $this->dump($user);
-
-        $q = parent::getUpsertQuery($this->TABLE, $fields, $values);
-        $resp = $this->db->insert($q); 
-        return $resp;
+        return DB::table($this->TABLE)->insert(
+            $this->dump($user)
+        );
     }
-
 
     /**
-     * Finds a User in database via it's ID. Returns null if not found
-     * 
-     * @param string $id
-     * @return User|null
+     * Updates a User in the database and returns True on success
+     *
+     * @param User $user
+     * @return boolean
      */
-    public function find(string $id) : ?User
+    public function update(User $user) : bool
     {
-        $q = parent::getSelectQuery($this->TABLE, ["*"], ["id='$id'"]);
-        $resp = parent::_find($q);
-        return $this->load($resp);
+        return DB::table($this->TABLE)->where("id", $user->getIDString())->update(
+            $this->dump($user)
+        );
     }
+
 
     /**
      * Finds a User in database via it's username. Returns null if not found
@@ -70,8 +86,7 @@ class UserMapper extends BaseMapper {
      */
     public function findByUsername(string $username) : ?User
     {
-        $q = parent::getSelectQuery($this->TABLE, ["*"], ["username='$username'"]);
-        $resp = parent::_find($q);
+        $resp = DB::table($this->TABLE)->where("username", $username)->first();
         return $this->load($resp);
     }
 
@@ -83,9 +98,8 @@ class UserMapper extends BaseMapper {
      */
     public function delete(User $user) : bool
     {
-        $q = parent::getDeleteQuery($this->TABLE, ["id='{$user->getIDString()}'"]);
-        $resp = $this->db->delete($q);
-        return $resp;
+        $resp = DB::table($this->TABLE)->where("id", $user->getIDString())->delete();
+        return (bool) $resp;
     }
 
     /**
@@ -98,10 +112,7 @@ class UserMapper extends BaseMapper {
      */
     public function usernameExists(string $username) : bool
     {
-        $q = parent::getSelectQuery($this->TABLE, ["*"], ["username='$username'"]);
-        $resp = parent::_find($q);
-
-        return (bool) $resp;
+        return DB::table($this->TABLE)->where("username", $username)->exists();
     }
 
     /**
@@ -128,9 +139,9 @@ class UserMapper extends BaseMapper {
     private function dump(User $user) : array
     {
         return [
-            $user->getIDString(), 
-            $user->getUsernameString(), 
-            $user->getPasswordString()
+            "id"=> $user->getIDString(), 
+            "username"=> $user->getUsernameString(), 
+            "password"=> $user->getPasswordString()
         ];
     }
 

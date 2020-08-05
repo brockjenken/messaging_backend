@@ -70,12 +70,12 @@ class UserController extends AppController
         $data = $request->json()->all();
         $this->validateData("update", "user", $data);
 
-        if ($user->getUsernameString() !== $data["username"] && $this->mapper->userExists($data["username"])){
+        if ($user->getUsernameString() !== $data["username"] && $this->mapper->usernameExists($data["username"])){
             throw new ConflictHttpException( "Username {$data["username"]} is already taken");
         }
 
         $user->updateInformation($data);
-        $this->mapper->save($user);
+        $this->mapper->update($user);
 
         return $this->response(200, Parser::parseUser($user));
     }

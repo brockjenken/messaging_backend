@@ -6,111 +6,30 @@ use FFI\Exception;
 use Symfony\Component\Console\Exception\LogicException;
 use Illuminate\Database\Connectors\SQLiteConnector;
 use Illuminate\Database\QueryException;
+
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use PDOStatement;
 
 class BaseMapper {
-    /**
-     * Database instance that will connect to a SQLite instance
-     * 
-     * @var PDO
-     */
-    protected $db;
 
     public function __construct()
     {
-        $this->db = app('db');
+        $this->setUpTable();
     }
 
 
      /**
-      * Returns a query that will create a table for the fields supplied. 
-      *
-      * Note: If a table exists already with the given name, that table may not have the same desired fields.
-      *
-      * @param string $table
-      * @param array $fields
-      * @return string
-      * @throws LogicException
-      */
-    protected function getCreateTableQuery(string $table, array $fields=[]) : string
-    {
-        if ($fields === []){
-            throw new LogicException("Please provide at least 1 field for the table.");
-        }
-
-        $q = "CREATE TABLE IF NOT EXISTS {$table} (" . join(", ", $fields) . ")";
-        return $q;
-    }
-
-    /**
-     * Returns a query to get documents given the provided fields, their conditions, and a supplied order.
+     * Placeholder to ensure children classes implement it
      *
-     * @param string $table
-     * @param array $fields
-     * @param array $conditions
-     * @param array $order
-     * @return string
-     */
-    protected function getSelectQuery(string $table, array $fields=["*"], array $conditions=[], array $order=[]) : string
-    {
-        $q = "SELECT " . join(', ', $fields) . " FROM {$table}";
-
-        if ($conditions) {
-            $q .= " WHERE " . join(" AND " , $conditions);
-        }
-
-        if ($order) {
-            $q .= " ORDER BY " . join(", " , $order);
-        }
-        
-        return $q;
-    }
-
-    /**
-     * Returns an upsert query for a table the given fields and corresponding values
-     *
-     * @param string $table
-     * @param array $fields
-     * @param array $values
-     * @return string
-     */
-    protected function getUpsertQuery(string $table, array $fields=["*"], array $values=[]) : string
-    {
-        if ($fields === []){
-            throw new LogicException("Please provide at least 1 field for the table.");
-        }
-
-        $q = "INSERT INTO {$table}(" . join(", ", $fields) . ") VALUES ('" . join("', '", $values) . "')";
-        $q .= " ON CONFLICT({$fields[0]}) DO UPDATE SET ";
-
-        $cons = [];
-        foreach ($fields as $f){
-            array_push($cons, "{$f}=excluded.{$f}");
-        }
-
-        $q .= join(", ", $cons);
-        
-        return $q;
-    }
-
-    /**
-     * Returns a delete query.
-     * 
-     * Note: It will delete all documents from the table if no conditions are supplied.
-     *
-     * @param string $table
-     * @param array $conditions
      * @return void
      */
-    protected function getDeleteQuery(string $table, array $conditions=[])
+    protected function setUpTable()
     {
-        $q = "DELETE FROM {$table}";
-        if ($conditions) {
-            $q .= " WHERE " . join(" AND " , $conditions);
-        }
+        throw new Exception("Not implemented");
+    }
 
-        return $q;
-    } 
 
     /**
      * Returns all documents for a given table (dictated by the type of mapper)
@@ -119,8 +38,7 @@ class BaseMapper {
      */
     public function findAll() : array
     {
-        $q = $this->getSelectQuery($this->TABLE, ["*"]);
-        $resp = $this->db->select($q);
+        $resp = DB::table($this->TABLE)->get();
         return $this->loadMany($resp);
     }
 
@@ -131,9 +49,7 @@ class BaseMapper {
      */
     public function deleteAll() : bool
     {
-        $q = $this->getDeleteQuery($this->TABLE);
-        $resp = $this->db->statement($q);
-        return $resp;
+        return DB::table($this->TABLE)->delete();
     }
 
     /**
@@ -143,13 +59,13 @@ class BaseMapper {
      * @param array|null $dump
      * @return object|null
      */
-    protected function load(?array $dump) : ?object
+    protected function load(?object $dump) : ?object
     {
         if (!$dump){
             return null;
         }
 
-        return $this->_load($dump[0]);
+        return $this->_load($dump);
     }
 
     
@@ -159,7 +75,7 @@ class BaseMapper {
      * @param array $dump
      * @return array
      */
-    protected function loadMany(array $dump) : array
+    protected function loadMany(Collection $dump) : array
     {
         $messages = [];
         foreach ($dump as $row) {

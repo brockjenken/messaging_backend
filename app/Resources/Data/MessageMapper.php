@@ -3,6 +3,9 @@
 namespace App\Resources\Data;
 
 use App\Resources\Models\{Message, User};
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class MessageMapper extends BaseMapper {
 
@@ -16,21 +19,37 @@ class MessageMapper extends BaseMapper {
     public function __construct()
     {
         parent::__construct();
-        $this->setUpTable();
     }
 
 
-    /**
-     * Creates table for Messages and returns True on success
+     /**
+     *  Sets up table if not already present
      *
-     * @return boolean
+     * @return void
      */
-    private function setUpTable() : bool
+    protected function setUpTable()
     {
-        $fields = ["id TEXT PRIMARY KEY", "text TEXT", "date INTEGER", "senderID TEXT", "recipientID TEXT"];
-        $q = parent::getCreateTableQuery($this->TABLE, $fields);
-        $resp = $this->db->statement($q);
-        return $resp;
+        if (!Schema::hasTable($this->TABLE)){
+            Schema::create($this->TABLE, function (Blueprint $table) {
+                $table->string("id")->primary();
+                $table->string("text");
+                $table->integer("date");
+                $table->string("senderID");
+                $table->string("recipientID");
+            });
+        }
+    }
+    
+    /**
+     * Finds Message in database via it's ID. Returns null if not found
+     *
+     * @param string $id
+     * @return Message|null
+     */
+    public function find(string $id) : ?Message
+    {
+        $resp = DB::table($this->TABLE)->where("id", $id)->first();
+        return $this->load($resp);
     }
 
     /**
@@ -41,25 +60,9 @@ class MessageMapper extends BaseMapper {
      */
     public function save(Message $message) : bool
     {
-        $fields = ["id", "text", "date", "senderID", "recipientID"];
-        $values = $this->dump($message);
-
-        $q = parent::getUpsertQuery($this->TABLE, $fields, $values);
-        $resp = $this->db->insert($q); 
-        return $resp;
-    }
-
-    /**
-     * Finds Message in database via it's ID. Returns null if not found
-     *
-     * @param string $id
-     * @return Message|null
-     */
-    public function find(string $id) : ?Message
-    {
-        $q = parent::getSelectQuery($this->TABLE, ["*"], ["id='$id'"], ["date ASC"]);
-        $resp = parent::_find($q);
-        return $this->load($resp);
+        return DB::table($this->TABLE)->insert(
+            $this->dump($message)
+        );
     }
 
     /**
@@ -70,9 +73,7 @@ class MessageMapper extends BaseMapper {
      */
     public function findBySenderID(string $id) : ?array
     {
-        $q = parent::getSelectQuery($this->TABLE, ["*"], ["senderID='$id'"], ["date ASC"]);
-        $resp = parent::_find($q);
-
+        $resp = DB::table($this->TABLE)->where("senderID", $id)->get();
         return $this->loadMany($resp);
     }
     
@@ -84,8 +85,7 @@ class MessageMapper extends BaseMapper {
      */
     public function findByRecipientID(string $id) : ?array
     {
-        $q = parent::getSelectQuery($this->TABLE, ["*"], ["recipientID='$id'"], ["date ASC"]);
-        $resp = parent::_find($q);
+        $resp = DB::table($this->TABLE)->where("recipientID", $id)->get();
         return $this->loadMany($resp);
     }
 
@@ -98,22 +98,13 @@ class MessageMapper extends BaseMapper {
      */
     public function find_by_date(int $start, int $end) : ?array
     {
-        $q = parent::getSelectQuery($this->TABLE, ["*"], ["date>=$start", "date<=$end"], ["date ASC"]);
-        $resp = parent::_find($q);
+        $resp = DB::table($this->TABLE)->where(
+            ["date", ">=", $start],
+            ["date", "<=", $end]
+            )->get();
         return $this->loadMany($resp);
     }
 
-    /**
-     * Deletes all Messages from the database. Returns True on success
-     *
-     * @return boolean
-     */
-    public function deleteAll() : bool
-    {
-        $q = parent::getDeleteQuery($this->TABLE);
-        $resp = $this->db->delete($q);
-        return $resp;
-    }
 
     /**
      * Deletes a Message from the database. Returns True on success
@@ -123,9 +114,8 @@ class MessageMapper extends BaseMapper {
      */
     public function delete(Message $message) : bool
     {
-        $q = parent::getDeleteQuery($this->TABLE, ["id='{$message->getIDString()}'"]);
-        $resp = $this->db->delete($q);
-        return $resp;
+        $resp = DB::table($this->TABLE)->where("id", $message->getIDString())->delete();
+        return (bool) $resp;
     }
 
     /**
@@ -158,11 +148,11 @@ class MessageMapper extends BaseMapper {
     private function dump(Message $message) : array
     {
         return [
-            $message->getIDString(),
-            $message->getTextString(),
-            $message->getDateInt(),
-            $message->getSenderIDString(),
-            $message->getRecipientIDString()
+            "id"=> $message->getIDString(),
+            "text"=> $message->getTextString(),
+            "date"=> $message->getDateInt(),
+            "senderID"=> $message->getSenderIDString(),
+            "recipientID"=> $message->getRecipientIDString()
         ];
     }
 
