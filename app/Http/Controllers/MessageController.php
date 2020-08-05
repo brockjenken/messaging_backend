@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Laravel\Lumen\Http\Request;
-use Laravel\Lumen\Routing\Controller as BaseController;
 use App\Resources\Data\{MessageMapper, UserMapper};
 use App\Resources\Models\Message;
-use App\Resources\Schema\Schema;
+use App\Resources\Schema\Parser;
+use Illuminate\Http\Response;
+use Laravel\Lumen\Http\Request;
 use Symfony\Component\HttpKernel\Exception\{BadRequestHttpException, ConflictHttpException, HttpException, NotFoundHttpException};
 
 
@@ -16,38 +16,63 @@ class MessageController extends AppController
         $this->mapper = new MessageMapper();
     }
 
-    public function getMessages(Request $request, string $user_id)
+    /**
+     * Controls the accessing of Messages for a given user. The user_id represents the recipient, not the sender
+     *
+     * @param Request $request
+     * @param string $user_id
+     * @return Response
+     * @throws NotFoundHttpException
+     */
+    public function getMessages(Request $request, string $user_id) : Response
     {
         $user = (new UserMapper())->find($user_id);
         if (!$user){
             throw new NotFoundHttpException("User ID $user_id cannot be found.");
         }
 
-        $messages = $this->mapper->findBySenderID($user_id);
-        return $this->response(200, Schema::parseMessages($messages));
+        $messages = $this->mapper->findByRecipientID($user_id);
+        return $this->response(200, Parser::parseMessages($messages));
     }
 
-    public function createMessage(Request $request, string $user_id)
+    /**
+     * Controls the creating of Messages.
+     * 
+     * Will automatically override the senderID value to the URL ID and also sets the date to current timestamp.d.
+     *
+     * @param Request $request
+     * @param string $user_id
+     * @return Response
+     * @throws NotFoundHttpException
+     */
+    public function createMessage(Request $request, string $user_id) : Response
     {
         $data = $request->json()->all();
         $data["senderID"] = $user_id;
-        if (!isset($data["date"])){{
-            $data["date"] = time();
-        }}
+        $data["date"] = time();
+
+        $this->validateData("create", "message", $data);
 
         if (!$this->_usersExist($data)){
             throw new NotFoundHttpExcetion("Please ensure both the sender and recipient IDs exist");
         }
 
-        $this->validate_data("create", "message", $data);
-
         $message = $this->_createMessage($data);
         $this->mapper->save($message);
 
-        return $this->response(201, Schema::parseMessage($message));
+        return $this->response(201, Parser::parseMessage($message));
     }
 
-    public function deleteMessage(Request $request, string $user_id, string $message_id)
+    /**
+     * Controls the deletion of Messages.
+     *
+     * @param Request $request
+     * @param string $user_id
+     * @param string $message_id
+     * @return Response
+     * @throws NotFoundHttpException
+     */
+    public function deleteMessage(Request $request, string $user_id, string $message_id) : Response
     {
         $user = (new UserMapper())->find($user_id);
         
@@ -65,6 +90,12 @@ class MessageController extends AppController
         return $this->response(204, null);
     }
 
+    /**
+     * Checks if both the sender and recipient exist. Returns True if both exist, otherwise False
+     *
+     * @param array $data
+     * @return boolean
+     */
     private function _usersExist(array $data) : bool
     {
         $m = new UserMapper();
@@ -75,6 +106,12 @@ class MessageController extends AppController
         return $sender !== null && $recipient !== null;
     }
 
+    /**
+     * Helper method used to streamline the creation of a Message.
+     *
+     * @param array $data
+     * @return Message
+     */
     private function _createMessage(array $data) : Message
     {
         return new Message(

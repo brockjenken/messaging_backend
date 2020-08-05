@@ -21,10 +21,6 @@ class BaseMapper {
         $this->db = app('db');
     }
 
-    /**
-     * These methods are used to streamline generating SQLite queries.
-     */
-
 
      /**
       * Returns a query that will create a table for the fields supplied. 
@@ -93,6 +89,7 @@ class BaseMapper {
         }
 
         $q .= join(", ", $cons);
+        
         return $q;
     }
 

@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Laravel\Lumen\Http\Request;
-use Laravel\Lumen\Routing\Controller as BaseController;
 use App\Resources\Data\UserMapper;
 use App\Resources\Models\User;
-use App\Resources\Schema\Schema;
-use Symfony\Component\HttpKernel\Exception\{BadRequestHttpException, ConflictHttpException, HttpException, NotFoundHttpException};
-
+use App\Resources\Schema\Parser;
+use Illuminate\Http\Response;
+use Laravel\Lumen\Http\Request;
+use Symfony\Component\HttpKernel\Exception\{ConflictHttpException, NotFoundHttpException};
 
 class UserController extends AppController
 {
@@ -18,37 +17,49 @@ class UserController extends AppController
     }
 
     /**
-     * @param Request request
+     * Controls the accessing of users.
+     *
+     * @param Request $request
+     * @return Response
      */
-    public function getUsers(Request $request)
+    public function getUsers(Request $request) : Response
     {
         $users = $this->mapper->findAll();
-        return $this->response(200, Schema::parseUsers($users));
+        return $this->response(200, Parser::parseUsers($users));
     }
 
     /**
-     * @param Request request
+     * Controls the creation of a user.
+     *
+     * @param Request $request
+     * @return Response
+     * @throws ConflictHttpException
      */
-    public function createUser(Request $request)
+    public function createUser(Request $request) : Response
     {
         $data = $request->json()->all();
-        $this->validate_data("create", "user", $data);
+        $this->validateData("create", "user", $data);
 
-        if ($this->mapper->userExists($data["username"])){
-            throw new ConflictHttpException( "Username {$data["username"]} is already taken");
+        if ($this->mapper->usernameExists($data["username"])){
+            throw new ConflictHttpException("Username {$data["username"]} is already taken");
         }
 
         $user = $this->_createUser($data);
-        $resp = $this->mapper->save($user);
+        $this->mapper->save($user);
 
-        return $this->response(201, Schema::parseUser($user));
+        return $this->response(201, Parser::parseUser($user));
     }
 
     /**
-     * @param Request request
-     * @param string user_id
+     * Controls the updating of a user. Will prevent a user from changing username to one that already exists.
+     *
+     * @param Request $request
+     * @param string $user_id
+     * @return Response
+     * @throws NotFoundHttpException
+     * @throws ConflictHttpException
      */
-    public function updateUser(Request $request, string $user_id)
+    public function updateUser(Request $request, string $user_id) : Response
     {
         $user = $this->mapper->find($user_id);
 
@@ -57,7 +68,7 @@ class UserController extends AppController
          }
 
         $data = $request->json()->all();
-        $this->validate_data("update", "user", $data);
+        $this->validateData("update", "user", $data);
 
         if ($user->getUsernameString() !== $data["username"] && $this->mapper->userExists($data["username"])){
             throw new ConflictHttpException( "Username {$data["username"]} is already taken");
@@ -66,13 +77,18 @@ class UserController extends AppController
         $user->updateInformation($data);
         $this->mapper->save($user);
 
-        return $this->response(200, Schema::parseUser($user));
+        return $this->response(200, Parser::parseUser($user));
     }
+
     /**
-     * @param Request request
-     * @param string user_id
+     * Controls the deletion of users.
+     *
+     * @param Request $request
+     * @param string $user_id
+     * @return Response
+     * @throws NotFoundHttpException
      */
-    public function deleteUser(Request $request, string $user_id)
+    public function deleteUser(Request $request, string $user_id) : Response
     {
         $user = $this->mapper->find($user_id);
         
@@ -84,7 +100,14 @@ class UserController extends AppController
         return $this->response(204, null);
     }
 
-
+    /**
+     * Helper method used to streamline the creation of a User. 
+     * 
+     * It creates a User and also hashes the password.
+     *
+     * @param array $data
+     * @return User
+     */
     private function _createUser(array $data) : User
     {
         $data["password"] = password_hash($data["password"], PASSWORD_BCRYPT);

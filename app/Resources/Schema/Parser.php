@@ -2,17 +2,19 @@
 
 namespace App\Resources\Schema;
 
-use App\Resources\Models\{User, Message, Conversation};
+use App\Resources\Models\{User, Message};
 
-class Schema
+/**
+ * This class is used to parse object types into JSON objects
+ */
+class Parser
 {
     // Users
     public static function parseUser(User $user, bool $json = TRUE)
     {
         $dump = [
             "id" => $user->getIDString(),
-            "username"=> $user->getUsernameString(),
-            "password"=> "password"
+            "username"=> $user->getUsernameString()
             ];
 
         if ($json) {
@@ -26,7 +28,7 @@ class Schema
     {
         $resp = [];
         foreach ($users as $user){
-            array_push($resp, Schema::parseUser($user, FALSE));
+            array_push($resp, Parser::parseUser($user, FALSE));
         }
 
         return json_encode($resp);
@@ -54,7 +56,7 @@ class Schema
     {
         $resp = [];
         foreach ($messages as $message){
-            array_push($resp, Schema::parseMessage($message, FALSE));
+            array_push($resp, Parser::parseMessage($message, FALSE));
         }
 
         return json_encode($resp);
