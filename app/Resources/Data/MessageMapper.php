@@ -159,7 +159,7 @@ class MessageMapper extends BaseMapper {
     {
         return [
             $message->getIDString(),
-            (unicode) $message->getTextString(),
+            $message->getTextString(),
             $message->getDateInt(),
             $message->getSenderIDString(),
             $message->getRecipientIDString()
