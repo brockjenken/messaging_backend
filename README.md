@@ -1,4 +1,4 @@
-# Sample Messenger App
+# Messaging App
 
 This repo is a simple messaging api utilizing the Lumen framework.
 
