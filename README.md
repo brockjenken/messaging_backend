@@ -36,8 +36,7 @@ Using this endpoint with `GET` will get the user's messages, and calling it with
 ## Installation
 After cloning the repo, initialize a SQLite database called `database.sqlite` in the `database` folder.
 
-Then ensure dependencies are updated with Composer.
-
+Then ensure dependencies are updated with Composer by running
 ```bash
 composer update
 ```
